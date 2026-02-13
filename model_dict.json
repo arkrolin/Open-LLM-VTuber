@@ -2,28 +2,53 @@
     {
         "name": "mao_pro",
         "description": "",
-        "url": "/live2d-models/mao_pro/runtime/mao_pro.model3.json",
-        "kScale": 0.5,
+        "url": "/live2d-models/yks/yks.model3.json",
+        "kScale": 0.3,
         "initialXshift": 0,
-        "initialYshift": 0,
+        "initialYshift": 100,
         "kXOffset": 1150,
         "idleMotionGroupName": "Idle",
-        "emotionMap": {
-            "neutral": 0,
+        "__emotionMap": {
+            "neutral": 1,
             "anger": 2,
-            "disgust": 2,
-            "fear": 1,
-            "joy": 3,
-            "smirk": 3,
-            "sadness": 1,
-            "surprise": 3
+            "disgust": 3,
+            "fear": 4,
+            "joy": 5,
+            "smirk": 1,
+            "sadness": 3,
+            "surprise": 2
         },
+        "emotionMap": {},
         "tapMotions": {
-            "HitAreaHead": {
-                "": 1
+            "D_PSD_05": {
+                "Tap脸": 1
             },
-            "HitAreaBody": {
-                "": 1
+            "D_PSD_69": {
+                "Tap玩偶": 1
+            },
+            "D_PSD_85": {
+                "Tap锁骨": 1
+            },
+            "D_PSD_171": {
+                "Tap胸": 1
+            },
+            "D_PSD_79": {
+                "Tap手臂": 1
+            },
+            "D_PSD_202": {
+                "Tap蝴蝶结": 1
+            },
+            "D_PSD_203": {
+                "Tap蝴蝶结": 1
+            },
+            "D_PSD_72": {
+                "Tap裙": 1
+            },
+            "D_PSD_168": {
+                "Tap发箍": 1
+            },
+            "D_PSD_169": {
+                "Tap发箍": 1
             }
         }
     }
