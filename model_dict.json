@@ -1,6 +1,6 @@
 [
     {
-        "name": "mao_pro",
+        "name": "yks",
         "description": "",
         "url": "/live2d-models/yks/yks.model3.json",
         "kScale": 0.3,
@@ -24,31 +24,31 @@
                 "Tap脸": 1
             },
             "D_PSD_69": {
-                "Tap玩偶": 1
+                "Tap玩偶": 2
             },
             "D_PSD_85": {
-                "Tap锁骨": 1
+                "Tap锁骨": 3
             },
             "D_PSD_171": {
-                "Tap胸": 1
+                "Tap胸": 4
             },
             "D_PSD_79": {
-                "Tap手臂": 1
+                "Tap手臂": 5
             },
             "D_PSD_202": {
-                "Tap蝴蝶结": 1
+                "Tap蝴蝶结": 6
             },
             "D_PSD_203": {
-                "Tap蝴蝶结": 1
+                "Tap蝴蝶结": 5
             },
             "D_PSD_72": {
-                "Tap裙": 1
+                "Tap裙": 4
             },
             "D_PSD_168": {
-                "Tap发箍": 1
+                "Tap发箍": 3
             },
             "D_PSD_169": {
-                "Tap发箍": 1
+                "Tap发箍": 2
             }
         }
     }
