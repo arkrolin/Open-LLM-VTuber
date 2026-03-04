@@ -6,7 +6,7 @@ try:
     result = client.predict(
         "Same as the voice reference",  # 情感模式直接传数字 0 最稳妥
         None,  # prompt 传 None，触发后端默认 bingzhi.wav
-        "你好，我是兵智。这次变量未定义的错误已经修复了，我们可以正常通话了。",
+        "你好，我是兵智。我们可以正常通话了。",
         None,  # emo_ref_path
         0.65,
         0,
