@@ -211,6 +211,40 @@ class TTSFactory:
                 normalize_audio=kwargs.get("normalize_audio"),
                 use_cuda=kwargs.get("use_cuda"),
             )
+        elif engine_type == "index_tts":
+            from .index_tts import IndexTTS
+
+            return IndexTTS(
+                api_url=kwargs.get("api_url"),
+                emo_control_method=kwargs.get(
+                    "emo_control_method", "Same as the voice reference"
+                ),
+                prompt=kwargs.get("prompt"),
+                emo_ref_path=kwargs.get("emo_ref_path"),
+                emo_weight=kwargs.get("emo_weight", 0.65),
+                vec1=kwargs.get("vec1", 0),
+                vec2=kwargs.get("vec2", 0),
+                vec3=kwargs.get("vec3", 0),
+                vec4=kwargs.get("vec4", 0),
+                vec5=kwargs.get("vec5", 0),
+                vec6=kwargs.get("vec6", 0),
+                vec7=kwargs.get("vec7", 0),
+                vec8=kwargs.get("vec8", 0),
+                emo_text=kwargs.get("emo_text", ""),
+                emo_random=kwargs.get("emo_random", False),
+                max_text_tokens_per_segment=kwargs.get(
+                    "max_text_tokens_per_segment", 120
+                ),
+                param_16=kwargs.get("param_16", True),
+                param_17=kwargs.get("param_17", 0.8),
+                param_18=kwargs.get("param_18", 30),
+                param_19=kwargs.get("param_19", 0.8),
+                param_20=kwargs.get("param_20", 0),
+                param_21=kwargs.get("param_21", 3),
+                param_22=kwargs.get("param_22", 10),
+                param_23=kwargs.get("param_23", 1500),
+                api_name=kwargs.get("api_name", "/gen_single"),
+            )
         else:
             raise ValueError(f"Unknown TTS engine type: {engine_type}")
 

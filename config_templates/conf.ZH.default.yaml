@@ -274,7 +274,34 @@ character_config:
     #   'azure_tts', 'pyttsx3_tts', 'edge_tts', 'bark_tts',
     #   'cosyvoice_tts', 'melo_tts', 'coqui_tts', 'piper_tts',
     #   'fish_api_tts', 'x_tts', 'gpt_sovits_tts', 'sherpa_onnx_tts'
-    #   'minimax_tts', 'elevenlabs_tts', 'cartesia_tts'
+    #   'minimax_tts', 'elevenlabs_tts', 'cartesia_tts', 'index_tts'
+
+    index_tts:
+      api_url: "http://10.80.8.154:30413/" # IndexTTS Gradio API 服务器的 URL
+      emo_control_method: "Same as the voice reference" # 情感控制方法
+      prompt: null # 提示音频文件路径
+      emo_ref_path: null # 情感参考音频路径
+      emo_weight: 0.65 # 情感权重
+      vec1: 0 # 情感向量参数 1
+      vec2: 0 # 情感向量参数 2
+      vec3: 0 # 情感向量参数 3
+      vec4: 0 # 情感向量参数 4
+      vec5: 0 # 情感向量参数 5
+      vec6: 0 # 情感向量参数 6
+      vec7: 0 # 情感向量参数 7
+      vec8: 0 # 情感向量参数 8
+      emo_text: "" # 情感文本描述
+      emo_random: false # 启用随机情感变化
+      max_text_tokens_per_segment: 120 # 每个段落的最大文本令牌数
+      param_16: true # 参数 16
+      param_17: 0.8 # 参数 17
+      param_18: 30 # 参数 18
+      param_19: 0.8 # 参数 19
+      param_20: 0 # 参数 20
+      param_21: 3 # 参数 21
+      param_22: 10 # 参数 22
+      param_23: 1500 # 参数 23
+      api_name: "/gen_single" # Gradio API 端点名称
 
     siliconflow_tts:
       api_url: "https://api.siliconflow.cn/v1/audio/speech"

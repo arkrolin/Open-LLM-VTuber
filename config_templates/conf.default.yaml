@@ -277,7 +277,34 @@ character_config:
     #   'azure_tts', 'pyttsx3_tts', 'edge_tts', 'bark_tts',
     #   'cosyvoice_tts', 'melo_tts', 'coqui_tts', 'piper_tts',
     #   'fish_api_tts', 'x_tts', 'gpt_sovits_tts', 'sherpa_onnx_tts'
-    #   'minimax_tts', 'elevenlabs_tts', 'cartesia_tts'
+    #   'minimax_tts', 'elevenlabs_tts', 'cartesia_tts', 'index_tts'
+
+    index_tts:
+      api_url: "http://10.80.8.154:30413/" # URL of the IndexTTS Gradio API server
+      emo_control_method: "Same as the voice reference" # Emotion control method
+      prompt: null # Prompt audio file path
+      emo_ref_path: null # Emotion reference audio path
+      emo_weight: 0.65 # Emotion weight
+      vec1: 0 # Emotion vector parameter 1
+      vec2: 0 # Emotion vector parameter 2
+      vec3: 0 # Emotion vector parameter 3
+      vec4: 0 # Emotion vector parameter 4
+      vec5: 0 # Emotion vector parameter 5
+      vec6: 0 # Emotion vector parameter 6
+      vec7: 0 # Emotion vector parameter 7
+      vec8: 0 # Emotion vector parameter 8
+      emo_text: "" # Emotion text description
+      emo_random: false # Enable random emotion variation
+      max_text_tokens_per_segment: 120 # Maximum text tokens per segment
+      param_16: true # Parameter 16
+      param_17: 0.8 # Parameter 17
+      param_18: 30 # Parameter 18
+      param_19: 0.8 # Parameter 19
+      param_20: 0 # Parameter 20
+      param_21: 3 # Parameter 21
+      param_22: 10 # Parameter 22
+      param_23: 1500 # Parameter 23
+      api_name: "/gen_single" # Gradio API endpoint name
 
     azure_tts:
       api_key: 'azure-api-key'

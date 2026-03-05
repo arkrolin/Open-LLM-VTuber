@@ -408,6 +408,141 @@ class SherpaOnnxTTSConfig(I18nMixin):
     }
 
 
+class IndexTTSConfig(I18nMixin):
+    """Configuration for IndexTTS."""
+
+    api_url: str = Field(..., alias="api_url")
+    emo_control_method: str = Field(
+        "Same as the voice reference", alias="emo_control_method"
+    )
+    prompt: str | None = Field(None, alias="prompt")
+    emo_ref_path: str | None = Field(None, alias="emo_ref_path")
+    emo_weight: float = Field(0.65, alias="emo_weight")
+    vec1: int = Field(0, alias="vec1")
+    vec2: int = Field(0, alias="vec2")
+    vec3: int = Field(0, alias="vec3")
+    vec4: int = Field(0, alias="vec4")
+    vec5: int = Field(0, alias="vec5")
+    vec6: int = Field(0, alias="vec6")
+    vec7: int = Field(0, alias="vec7")
+    vec8: int = Field(0, alias="vec8")
+    emo_text: str = Field("", alias="emo_text")
+    emo_random: bool = Field(False, alias="emo_random")
+    max_text_tokens_per_segment: int = Field(120, alias="max_text_tokens_per_segment")
+    param_16: bool = Field(True, alias="param_16")
+    param_17: float = Field(0.8, alias="param_17")
+    param_18: int = Field(30, alias="param_18")
+    param_19: float = Field(0.8, alias="param_19")
+    param_20: int = Field(0, alias="param_20")
+    param_21: int = Field(3, alias="param_21")
+    param_22: int = Field(10, alias="param_22")
+    param_23: int = Field(1500, alias="param_23")
+    api_name: str = Field("/gen_single", alias="api_name")
+
+    DESCRIPTIONS: ClassVar[Dict[str, Description]] = {
+        "api_url": Description(
+            en="URL of the IndexTTS Gradio API server",
+            zh="IndexTTS Gradio API 服务器的 URL",
+        ),
+        "emo_control_method": Description(
+            en="Emotion control method",
+            zh="情感控制方法",
+        ),
+        "prompt": Description(
+            en="Prompt audio file path",
+            zh="提示音频文件路径",
+        ),
+        "emo_ref_path": Description(
+            en="Emotion reference audio path",
+            zh="情感参考音频路径",
+        ),
+        "emo_weight": Description(
+            en="Emotion weight",
+            zh="情感权重",
+        ),
+        "vec1": Description(
+            en="Emotion vector parameter 1",
+            zh="情感向量参数 1",
+        ),
+        "vec2": Description(
+            en="Emotion vector parameter 2",
+            zh="情感向量参数 2",
+        ),
+        "vec3": Description(
+            en="Emotion vector parameter 3",
+            zh="情感向量参数 3",
+        ),
+        "vec4": Description(
+            en="Emotion vector parameter 4",
+            zh="情感向量参数 4",
+        ),
+        "vec5": Description(
+            en="Emotion vector parameter 5",
+            zh="情感向量参数 5",
+        ),
+        "vec6": Description(
+            en="Emotion vector parameter 6",
+            zh="情感向量参数 6",
+        ),
+        "vec7": Description(
+            en="Emotion vector parameter 7",
+            zh="情感向量参数 7",
+        ),
+        "vec8": Description(
+            en="Emotion vector parameter 8",
+            zh="情感向量参数 8",
+        ),
+        "emo_text": Description(
+            en="Emotion text description",
+            zh="情感文本描述",
+        ),
+        "emo_random": Description(
+            en="Enable random emotion variation",
+            zh="启用随机情感变化",
+        ),
+        "max_text_tokens_per_segment": Description(
+            en="Maximum text tokens per segment",
+            zh="每个段落的最大文本令牌数",
+        ),
+        "param_16": Description(
+            en="Parameter 16",
+            zh="参数 16",
+        ),
+        "param_17": Description(
+            en="Parameter 17",
+            zh="参数 17",
+        ),
+        "param_18": Description(
+            en="Parameter 18",
+            zh="参数 18",
+        ),
+        "param_19": Description(
+            en="Parameter 19",
+            zh="参数 19",
+        ),
+        "param_20": Description(
+            en="Parameter 20",
+            zh="参数 20",
+        ),
+        "param_21": Description(
+            en="Parameter 21",
+            zh="参数 21",
+        ),
+        "param_22": Description(
+            en="Parameter 22",
+            zh="参数 22",
+        ),
+        "param_23": Description(
+            en="Parameter 23",
+            zh="参数 23",
+        ),
+        "api_name": Description(
+            en="Gradio API endpoint name",
+            zh="Gradio API 端点名称",
+        ),
+    }
+
+
 class SiliconFlowTTSConfig(I18nMixin):
     """Configuration for SiliconFlow TTS."""
 
@@ -702,6 +837,7 @@ class TTSConfig(I18nMixin):
         "elevenlabs_tts",
         "cartesia_tts",
         "piper_tts",
+        "index_tts",
     ] = Field(..., alias="tts_model")
 
     azure_tts: Optional[AzureTTSConfig] = Field(None, alias="azure_tts")
@@ -726,6 +862,7 @@ class TTSConfig(I18nMixin):
     elevenlabs_tts: ElevenLabsTTSConfig | None = Field(None, alias="elevenlabs_tts")
     cartesia_tts: CartesiaTTSConfig | None = Field(None, alias="cartesia_tts")
     piper_tts: Optional[PiperTTSConfig] = Field(None, alias="piper_tts")
+    index_tts: Optional[IndexTTSConfig] = Field(None, alias="index_tts")
 
     DESCRIPTIONS: ClassVar[Dict[str, Description]] = {
         "tts_model": Description(
@@ -769,6 +906,7 @@ class TTSConfig(I18nMixin):
             en="Configuration for Cartesia TTS", zh="Cartesia TTS 配置"
         ),
         "piper_tts": Description(en="Configuration for Piper TTS", zh="Piper TTS 配置"),
+        "index_tts": Description(en="Configuration for IndexTTS", zh="IndexTTS 配置"),
     }
 
     @model_validator(mode="after")
@@ -813,4 +951,6 @@ class TTSConfig(I18nMixin):
 
         elif tts_model == "piper_tts" and values.piper_tts is not None:
             values.piper_tts.model_validate(values.piper_tts.model_dump())
+        elif tts_model == "index_tts" and values.index_tts is not None:
+            values.index_tts.model_validate(values.index_tts.model_dump())
         return values
