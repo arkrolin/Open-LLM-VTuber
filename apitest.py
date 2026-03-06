@@ -1,6 +1,6 @@
 from gradio_client import Client
 
-client = Client("http://10.80.8.154:30413/")
+client = Client("http://10.80.8.154:30641/")
 
 try:
     result = client.predict(
