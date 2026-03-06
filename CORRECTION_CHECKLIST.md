@@ -56,7 +56,7 @@ result = self.client.predict(
 )
 ```
 
-### 修正后的实现（正确）
+### 修正后的实现
 ```python
 result = self.client.predict(
     emo_control_method=self.emo_control_method,              # ✅ 正确
