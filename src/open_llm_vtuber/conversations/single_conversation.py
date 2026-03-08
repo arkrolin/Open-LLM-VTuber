@@ -16,6 +16,7 @@ from .conversation_utils import (
 from .types import WebSocketSend
 from .tts_manager import TTSTaskManager
 from ..chat_history_manager import store_message
+from ..memory_manager import append_memory
 from ..service_context import ServiceContext
 
 # Import necessary types from agent outputs
@@ -67,6 +68,8 @@ async def process_single_conversation(
             metadata=metadata,
         )
 
+        is_memory_summary = metadata and metadata.get("is_memory_summary", False)
+
         # Store user message (check if we should skip storing to history)
         skip_history = metadata and metadata.get("skip_history", False)
         if context.history_uid and not skip_history:
@@ -100,6 +103,10 @@ async def process_single_conversation(
 
                     await websocket_send(json.dumps(output_item))
 
+                elif isinstance(output_item, SentenceOutput) and is_memory_summary:
+                    async for display_text, tts_text, actions in output_item:
+                        response_part_str = display_text.text
+                        full_response += response_part_str
                 elif isinstance(output_item, (SentenceOutput, AudioOutput)):
                     # Handle SentenceOutput or AudioOutput
                     response_part = await process_agent_output(
@@ -148,7 +155,22 @@ async def process_single_conversation(
             client_uid=client_uid,
         )
 
-        if context.history_uid and full_response:  # Check full_response before storing
+        if is_memory_summary and full_response:
+            append_memory(context.character_config.conf_uid, full_response)
+            logger.info("Saved memory summary.")
+            # Since it's a memory summary, we don't store the AI's direct markdown response to the normal history
+            # But we can store a system notification instead so the user knows it was saved.
+            if context.history_uid:
+                store_message(
+                    conf_uid=context.character_config.conf_uid,
+                    history_uid=context.history_uid,
+                    role="system",
+                    content="Memory saved.",
+                )
+
+        elif (
+            context.history_uid and full_response
+        ):  # Check full_response before storing
             store_message(
                 conf_uid=context.character_config.conf_uid,
                 history_uid=context.history_uid,

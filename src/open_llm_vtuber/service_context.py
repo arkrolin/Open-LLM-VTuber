@@ -24,6 +24,8 @@ from .vad.vad_factory import VADFactory
 from .agent.agent_factory import AgentFactory
 from .translate.translate_factory import TranslateFactory
 
+from .memory_manager import get_recent_memories
+
 from .config_manager import (
     Config,
     AgentConfig,
@@ -435,15 +437,33 @@ class ServiceContext:
 
     async def construct_system_prompt(self, persona_prompt: str) -> str:
         """
-        Append tool prompts to persona prompt.
+        Append tool prompts and persistent memory to persona prompt.
 
         Parameters:
         - persona_prompt (str): The persona prompt.
 
         Returns:
-        - str: The system prompt with all tool prompts appended.
+        - str: The system prompt with all tool prompts and memories appended.
         """
         logger.debug(f"constructing persona_prompt: '''{persona_prompt}'''")
+
+        # Inject persistent memory
+        if (
+            hasattr(self.system_config, "memory_recent_days")
+            and self.system_config.memory_recent_days > 0
+        ):
+            memory_days = self.system_config.memory_recent_days
+            recent_memories = get_recent_memories(
+                self.character_config.conf_uid, days=memory_days
+            )
+            if recent_memories:
+                persona_prompt += "\n\n# Persistent Memory (Important Context)\n"
+                persona_prompt += getattr(
+                    self.system_config,
+                    "memory_prompt_prefix",
+                    "Below are the summaries of recent interactions with the user (organized by date). Use them to maintain consistency and context in your current conversation:\n",
+                )
+                persona_prompt += "\n" + recent_memories + "\n\n"
 
         for prompt_name, prompt_file in self.system_config.tool_prompts.items():
             if (
@@ -464,7 +484,7 @@ class ServiceContext:
 
             persona_prompt += prompt_content
 
-        logger.debug("\n === System Prompt ===")
+        logger.debug("\n === System Prompt ===\n")
         logger.debug(persona_prompt)
 
         return persona_prompt

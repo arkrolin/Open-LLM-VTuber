@@ -7,13 +7,127 @@ from fastapi import WebSocket
 from loguru import logger
 
 from ..chat_group import ChatGroupManager
-from ..chat_history_manager import store_message
+from ..chat_history_manager import (
+    store_message,
+    get_history,
+    get_metadata,
+    update_metadate,
+)
 from ..service_context import ServiceContext
 from .group_conversation import process_group_conversation
 from .single_conversation import process_single_conversation
 from .conversation_utils import EMOJI_LIST
 from .types import GroupConversationState
 from prompts import prompt_loader
+
+
+async def _single_conversation_wrapper(
+    context: ServiceContext,
+    websocket_send: Callable,
+    client_uid: str,
+    user_input: str,
+    images: Optional[list],
+    session_emoji: str,
+    metadata: Optional[dict],
+):
+    await process_single_conversation(
+        context=context,
+        websocket_send=websocket_send,
+        client_uid=client_uid,
+        user_input=user_input,
+        images=images,
+        session_emoji=session_emoji,
+        metadata=metadata,
+    )
+
+    if metadata and (metadata.get("is_memory_summary") or metadata.get("skip_history")):
+        return
+
+    turns = getattr(context.system_config, "auto_memory_turns", 0)
+    if turns > 0 and context.history_uid:
+        history = get_history(context.character_config.conf_uid, context.history_uid)
+        user_msgs = sum(1 for m in history if m.get("role") in ("user", "human"))
+
+        if user_msgs > 0 and user_msgs % turns == 0:
+            logger.info(
+                f"[Auto Memory] Triggering background memory summary for {client_uid} at turn {user_msgs}"
+            )
+            auto_metadata = (metadata or {}).copy()
+            auto_metadata.update({"is_memory_summary": True, "skip_history": True})
+
+            summary_prompt = "Please summarize our recent conversation history into key memory points (such as important facts, my preferences, and major events). Output ONLY the summary in Markdown format, with no extra conversational filler."
+
+            asyncio.create_task(
+                process_single_conversation(
+                    context=context,
+                    websocket_send=websocket_send,
+                    client_uid=client_uid,
+                    user_input=summary_prompt,
+                    images=None,
+                    session_emoji=session_emoji,
+                    metadata=auto_metadata,
+                )
+            )
+
+
+async def _group_conversation_wrapper(
+    client_contexts: Dict[str, ServiceContext],
+    client_connections: Dict[str, WebSocket],
+    broadcast_func: Callable,
+    group_members: set,
+    initiator_client_uid: str,
+    user_input: str,
+    images: Optional[list],
+    session_emoji: str,
+    metadata: Optional[dict],
+    group_id: str,
+):
+    await process_group_conversation(
+        client_contexts=client_contexts,
+        client_connections=client_connections,
+        broadcast_func=broadcast_func,
+        group_members=group_members,
+        initiator_client_uid=initiator_client_uid,
+        user_input=user_input,
+        images=images,
+        session_emoji=session_emoji,
+        metadata=metadata,
+    )
+
+    if metadata and (metadata.get("is_memory_summary") or metadata.get("skip_history")):
+        return
+
+    context = client_contexts.get(initiator_client_uid)
+    if not context:
+        return
+
+    turns = getattr(context.system_config, "auto_memory_turns", 0)
+    if turns > 0 and context.history_uid:
+        history = get_history(context.character_config.conf_uid, context.history_uid)
+        user_msgs = sum(1 for m in history if m.get("role") in ("user", "human"))
+
+        if user_msgs > 0 and user_msgs % turns == 0:
+            logger.info(
+                f"[Auto Memory] Triggering background memory summary for group {group_id} at turn {user_msgs}"
+            )
+            auto_metadata = (metadata or {}).copy()
+            auto_metadata.update({"is_memory_summary": True, "skip_history": True})
+
+            summary_prompt = "Please summarize our recent conversation history into key memory points (such as important facts, my preferences, and major events). Output ONLY the summary in Markdown format, with no extra conversational filler."
+
+            asyncio.create_task(
+                process_group_conversation(
+                    client_contexts=client_contexts,
+                    client_connections=client_connections,
+                    broadcast_func=broadcast_func,
+                    group_members=group_members,
+                    initiator_client_uid=initiator_client_uid,
+                    user_input=summary_prompt,
+                    images=None,
+                    session_emoji=session_emoji,
+                    metadata=auto_metadata,
+                )
+            )
 
 
 async def handle_conversation_trigger(
@@ -64,6 +178,11 @@ async def handle_conversation_trigger(
         )
     elif msg_type == "text-input":
         user_input = data.get("text", "")
+        if user_input.strip() == "/memory" or user_input.strip() == "/mem":
+            user_input = "Please summarize our recent conversation history into key memory points (such as important facts, my preferences, and major events). Output ONLY the summary in Markdown format, with no extra conversational filler."
+            metadata = metadata or {}
+            metadata["is_memory_summary"] = True
+            metadata["skip_history"] = True
     else:  # mic-audio-end
         user_input = received_data_buffers[client_uid]
         received_data_buffers[client_uid] = np.array([])
@@ -82,7 +201,7 @@ async def handle_conversation_trigger(
             logger.info(f"Starting new group conversation for {task_key}")
 
             current_conversation_tasks[task_key] = asyncio.create_task(
-                process_group_conversation(
+                _group_conversation_wrapper(
                     client_contexts=client_contexts,
                     client_connections=client_connections,
                     broadcast_func=broadcast_to_group,
@@ -92,12 +211,13 @@ async def handle_conversation_trigger(
                     images=images,
                     session_emoji=session_emoji,
                     metadata=metadata,
+                    group_id=task_key,
                 )
             )
     else:
         # Use client_uid as task key for individual conversations
         current_conversation_tasks[client_uid] = asyncio.create_task(
-            process_single_conversation(
+            _single_conversation_wrapper(
                 context=context,
                 websocket_send=websocket.send_text,
                 client_uid=client_uid,

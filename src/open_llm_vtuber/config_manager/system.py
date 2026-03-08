@@ -13,6 +13,8 @@ class SystemConfig(I18nMixin):
     config_alts_dir: str = Field(..., alias="config_alts_dir")
     tool_prompts: Dict[str, str] = Field(..., alias="tool_prompts")
     enable_proxy: bool = Field(False, alias="enable_proxy")
+    memory_recent_days: int = Field(3, alias="memory_recent_days")
+    auto_memory_turns: int = Field(10, alias="auto_memory_turns")
 
     DESCRIPTIONS: ClassVar[Dict[str, Description]] = {
         "conf_version": Description(en="Configuration version", zh="配置文件版本"),
@@ -28,6 +30,14 @@ class SystemConfig(I18nMixin):
         "enable_proxy": Description(
             en="Enable proxy mode for multiple clients",
             zh="启用代理模式以支持多个客户端使用一个 ws 连接",
+        ),
+        "memory_recent_days": Description(
+            en="Number of recent days to include in memory context",
+            zh="包含在记忆上下文中的最近天数",
+        ),
+        "auto_memory_turns": Description(
+            en="Number of conversation turns before automatically generating memory summary (0 to disable)",
+            zh="自动生成记忆总结前的对话轮数（0为不自动生成）",
         ),
     }
 

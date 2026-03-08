@@ -23,6 +23,7 @@ from .types import (
 )
 from ..service_context import ServiceContext
 from ..chat_history_manager import store_message
+from ..memory_manager import append_memory
 from .tts_manager import TTSTaskManager
 
 
@@ -265,6 +266,7 @@ async def handle_group_member_turn(
         tts_manager=tts_manager,
         broadcast_func=broadcast_func,
         group_members=group_members,
+        metadata=metadata,
     )
 
     if tts_manager.task_list:
@@ -284,23 +286,39 @@ async def handle_group_member_turn(
             broadcast_ctx=broadcast_ctx,
         )
 
+    is_memory_summary = metadata and metadata.get("is_memory_summary", False)
+
     if full_response:
         ai_message = f"{context.character_config.character_name}: {full_response}"
         state.conversation_history.append(ai_message)
         logger.info(f"Appended complete response: {ai_message}")
 
-        for member_uid in group_members:
-            member_context = client_contexts[member_uid]
-            store_message(
-                conf_uid=member_context.character_config.conf_uid,
-                history_uid=member_context.history_uid,
-                role="ai",
-                content=full_response,
-                name=context.character_config.character_name,
-                avatar=context.character_config.avatar,
-            )
+        if is_memory_summary:
+            append_memory(context.character_config.conf_uid, full_response)
+            logger.info("Saved group memory summary.")
+            for member_uid in group_members:
+                member_context = client_contexts[member_uid]
+                store_message(
+                    conf_uid=member_context.character_config.conf_uid,
+                    history_uid=member_context.history_uid,
+                    role="system",
+                    content=f"Memory saved for {context.character_config.character_name}.",
+                )
         else:
-            logger.debug("Skipping storing AI response to history (proactive speak)")
+            for member_uid in group_members:
+                member_context = client_contexts[member_uid]
+                store_message(
+                    conf_uid=member_context.character_config.conf_uid,
+                    history_uid=member_context.history_uid,
+                    role="ai",
+                    content=full_response,
+                    name=context.character_config.character_name,
+                    avatar=context.character_config.avatar,
+                )
+    else:
+        logger.debug(
+            "Skipping storing AI response to history (proactive speak or empty response)"
+        )
 
     state.memory_index[current_member_uid] = len(state.conversation_history)
     state.group_queue.append(current_member_uid)
@@ -345,9 +363,11 @@ async def process_member_response(
     tts_manager: TTSTaskManager,
     broadcast_func: Optional[BroadcastFunc] = None,
     group_members: Optional[List[str]] = None,
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Process group member's response, handling text/audio and tool status events."""
     full_response = ""
+    is_memory_summary = metadata and metadata.get("is_memory_summary", False)
 
     try:
         # agent.chat now yields Union[SentenceOutput, Dict[str, Any]]
@@ -366,6 +386,10 @@ async def process_member_response(
                     logger.warning(
                         "Cannot broadcast tool status: broadcast_func or group_members missing."
                     )
+            elif isinstance(output_item, SentenceOutput) and is_memory_summary:
+                async for display_text, tts_text, actions in output_item:
+                    response_part_str = display_text.text
+                    full_response += response_part_str
             elif isinstance(output_item, (SentenceOutput, AudioOutput)):
                 # Handle SentenceOutput or AudioOutput: Send to current user, broadcast audio later if needed
                 response_part = await process_agent_output(
