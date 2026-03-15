@@ -79,3 +79,5 @@ private/
 mcp_servers.json
 
 .vscode/
+
+/codemd
