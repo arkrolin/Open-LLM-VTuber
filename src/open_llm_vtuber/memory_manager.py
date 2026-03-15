@@ -53,32 +53,65 @@ def append_memory(conf_uid: str, content: str) -> bool:
         return False
 
 
+def clean_memory_content(raw_content: str) -> str:
+    """
+    清洗记忆内容：
+    1. 将块状标题 ## 00:51:10 转换为行内标签 **[00:51:10]**
+    2. 剔除没有任何内容的空时间戳
+    3. 压缩多余换行，提升 Token 效率
+    """
+    if not raw_content:
+        return ""
+
+    # 1. 转换格式：## HH:MM:SS -> **[HH:MM:SS]**
+    # re.MULTILINE 确保 ^ 匹配每一行的开头
+    content = re.sub(
+        r"^##\s+(\d{2}:\d{2}:\d{2})\s*", r"**[\1]** ", raw_content, flags=re.MULTILINE
+    )
+
+    # 2. 压缩换行：将连续的多个换行替换为单个换行
+    content = re.sub(r"\n{2,}", "\n", content)
+
+    # 3. 剔除空块：如果时间戳后面直接跟着另一个时间戳或字符串结束，说明该时间段无内容，直接删掉
+    # 使用正向肯定断言 (?=...)
+    content = re.sub(r"\*\*\[\d{2}:\d{2}:\d{2}\]\*\*\s*(?=\*\*\[|\Z)", "", content)
+
+    return content.strip()
+
+
 def get_recent_memories(conf_uid: str, days: int = 7) -> str:
-    """Get the memory contents from the last `days` days"""
+    """
+    获取最近 days 天的记忆文件，并返回格式化后的长字符串
+    """
     if not conf_uid or days <= 0:
         return ""
 
     try:
+        # 假设 _ensure_memory_dir 是你已有的工具函数，返回存储目录
         conf_dir = _ensure_memory_dir(conf_uid)
-
         if not os.path.exists(conf_dir):
             return ""
 
         memory_contents = []
         today = datetime.now().date()
 
+        # 按日期从远到近读取
         for i in range(days - 1, -1, -1):
             target_date = today - timedelta(days=i)
-            target_file = f"{target_date.strftime('%Y-%m-%d')}.md"
-            filepath = os.path.join(conf_dir, target_file)
+            date_str = target_date.strftime("%Y-%m-%d")
+            filepath = os.path.join(conf_dir, f"{date_str}.md")
 
             if os.path.exists(filepath):
                 try:
                     with open(filepath, "r", encoding="utf-8") as f:
-                        content = f.read().strip()
-                        if content:
+                        raw_text = f.read()
+                        # 执行正则清洗
+                        cleaned_text = clean_memory_content(raw_text)
+
+                        if cleaned_text:
+                            # 每一天的记忆给一个清晰的日期标题
                             memory_contents.append(
-                                f"# {target_date.strftime('%Y-%m-%d')} Memory:\n{content}"
+                                f"### Date: {date_str}\n{cleaned_text}"
                             )
                 except Exception as e:
                     logger.error(f"Error reading memory file {filepath}: {e}")

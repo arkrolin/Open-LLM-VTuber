@@ -299,10 +299,7 @@ class ServiceContext:
         )
 
         # init agent from character config
-        await self.init_agent(
-            config.character_config.agent_config,
-            config.character_config.persona_prompt,
-        )
+        await self.init_agent(config.character_config)
 
         self.init_translate(
             config.character_config.tts_preprocessor_config.translator_config
@@ -317,7 +314,6 @@ class ServiceContext:
         logger.info(f"Initializing Live2D: {live2d_model_name}")
         try:
             self.live2d_model = Live2dModel(live2d_model_name)
-            self.character_config.live2d_model_name = live2d_model_name
         except Exception as e:
             logger.critical(f"Error initializing Live2D: {e}")
             logger.critical("Try to proceed without Live2D...")
@@ -329,8 +325,6 @@ class ServiceContext:
                 asr_config.asr_model,
                 **getattr(asr_config, asr_config.asr_model).model_dump(),
             )
-            # saving config should be done after successful initialization
-            self.character_config.asr_config = asr_config
         else:
             logger.info("ASR already initialized with the same config.")
 
@@ -341,8 +335,6 @@ class ServiceContext:
                 tts_config.tts_model,
                 **getattr(tts_config, tts_config.tts_model.lower()).model_dump(),
             )
-            # saving config should be done after successful initialization
-            self.character_config.tts_config = tts_config
         else:
             logger.info("TTS already initialized with the same config.")
 
@@ -358,27 +350,32 @@ class ServiceContext:
                 vad_config.vad_model,
                 **getattr(vad_config, vad_config.vad_model.lower()).model_dump(),
             )
-            # saving config should be done after successful initialization
-            self.character_config.vad_config = vad_config
         else:
             logger.info("VAD already initialized with the same config.")
 
-    async def init_agent(self, agent_config: AgentConfig, persona_prompt: str) -> None:
+    async def init_agent(self, character_config: CharacterConfig) -> None:
         """Initialize or update the LLM engine based on agent configuration."""
+        agent_config = character_config.agent_config
+        persona_prompt = character_config.persona_prompt
+
         logger.info(f"Initializing Agent: {agent_config.conversation_agent_choice}")
 
         if (
             self.agent_engine is not None
+            and self.character_config is not None
             and agent_config == self.character_config.agent_config
             and persona_prompt == self.character_config.persona_prompt
+            and character_config.conf_uid == self.character_config.conf_uid
         ):
             logger.debug("Agent already initialized with the same config.")
             return
 
-        system_prompt = await self.construct_system_prompt(persona_prompt)
+        system_prompt = await self.construct_system_prompt(
+            persona_prompt, character_config.conf_uid
+        )
 
         # Pass avatar to agent factory
-        avatar = self.character_config.avatar or ""  # Get avatar from config
+        avatar = character_config.avatar or ""  # Get avatar from config
 
         try:
             self.agent_engine = AgentFactory.create_agent(
@@ -387,7 +384,7 @@ class ServiceContext:
                 llm_configs=agent_config.llm_configs.model_dump(),
                 system_prompt=system_prompt,
                 live2d_model=self.live2d_model,
-                tts_preprocessor_config=self.character_config.tts_preprocessor_config,
+                tts_preprocessor_config=character_config.tts_preprocessor_config,
                 character_avatar=avatar,
                 system_config=self.system_config.model_dump(),
                 tool_manager=self.tool_manager,
@@ -398,8 +395,7 @@ class ServiceContext:
             logger.debug(f"Agent choice: {agent_config.conversation_agent_choice}")
             logger.debug(f"System prompt: {system_prompt}")
 
-            # Save the current configuration
-            self.character_config.agent_config = agent_config
+            # Keep only the properties belonging uniquely to the environment context
             self.system_prompt = system_prompt
 
         except Exception as e:
@@ -427,20 +423,18 @@ class ServiceContext:
                     translator_config, translator_config.translate_provider
                 ).model_dump(),
             )
-            self.character_config.tts_preprocessor_config.translator_config = (
-                translator_config
-            )
         else:
             logger.info("Translation already initialized with the same config.")
 
     # ==== utils
 
-    async def construct_system_prompt(self, persona_prompt: str) -> str:
+    async def construct_system_prompt(self, persona_prompt: str, conf_uid: str) -> str:
         """
         Append tool prompts and persistent memory to persona prompt.
 
         Parameters:
         - persona_prompt (str): The persona prompt.
+        - conf_uid (str): The configuration UID for the character.
 
         Returns:
         - str: The system prompt with all tool prompts and memories appended.
@@ -453,15 +447,22 @@ class ServiceContext:
             and self.system_config.memory_recent_days > 0
         ):
             memory_days = self.system_config.memory_recent_days
-            recent_memories = get_recent_memories(
-                self.character_config.conf_uid, days=memory_days
-            )
+
+            logger.debug(f"Character config UID: {conf_uid}")
+
+            recent_memories = get_recent_memories(conf_uid, days=memory_days)
             if recent_memories:
+                default_memory_protocol = (
+                    "### Memory Protocol\n"
+                    "- **Source**: The section below contains your actual interaction history with this user.\n"
+                    "- **Action**: Reference this data to maintain continuity whenever the user mentions the past or previous tests.\n"
+                    "- **Constraint**: Do not trigger default AI 'no-memory' refusals or claim inability to access history.\n"
+                )
                 persona_prompt += "\n\n# Persistent Memory (Important Context)\n"
                 persona_prompt += getattr(
                     self.system_config,
                     "memory_prompt_prefix",
-                    "Below are the summaries of recent interactions with the user (organized by date). Use them to maintain consistency and context in your current conversation:\n",
+                    default_memory_protocol,
                 )
                 persona_prompt += "\n" + recent_memories + "\n\n"
 
